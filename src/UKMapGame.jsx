@@ -47,9 +47,9 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
 // Exponential Decay Scoring Function
 const exponentialDecayScore = (
   distance,
-  threshold = 10,
+  threshold = 7,
   maxScore = 500,
-  decayRate = 0.035
+  decayRate = 0.030
 ) => {
   if (distance <= threshold) {
     return maxScore; // No decay for distances within the threshold (e.g., 10 miles)
@@ -104,6 +104,7 @@ export default function UKMapGame() {
   const [rounds, setRounds] = useState(
     Array(10).fill({ city: "", distance: "", score: "" })
   ); // Initialize empty rows
+  const [usedCities, setUsedCities] = useState([]); // Track used cities to avoid repetition
 
   const handleMapClick = (latlng) => {
     if (!lockedIn) {
@@ -119,6 +120,7 @@ export default function UKMapGame() {
     setLockedIn(false);
     setGuess(null);
     setScore(0);
+    setUsedCities([]); // Reset used cities
     setTargetCity(cities[Math.floor(Math.random() * cities.length)]);
   };
 
@@ -142,11 +144,11 @@ export default function UKMapGame() {
       score: points,
     };
 
-    // Shift the rounds to make space for the new round (replace the first row)
+    // Add the new round to the bottom of the rounds array
     setRounds((prevRounds) => {
       const newRounds = [...prevRounds];
-      newRounds.pop(); // Remove the last entry
-      newRounds.unshift(newRound); // Add the new round to the top
+      newRounds.shift(); // Remove the first entry to make space for the new round
+      newRounds.push(newRound); // Add the new round at the bottom
       return newRounds;
     });
 
@@ -159,7 +161,15 @@ export default function UKMapGame() {
     if (gameOver) {
       resetGame(); // Reset the game if the player has finished 10 rounds
     } else {
-      setTargetCity(cities[Math.floor(Math.random() * cities.length)]);
+      // Filter out cities that have already been used in this game
+      const availableCities = cities.filter(
+        (city) => !usedCities.includes(city.name)
+      );
+      
+      // Pick a new city and add it to the usedCities list
+      const newCity = availableCities[Math.floor(Math.random() * availableCities.length)];
+      setTargetCity(newCity);
+      setUsedCities((prevUsedCities) => [...prevUsedCities, newCity.name]); // Add to used cities
       setLockedIn(false); // Reset locked-in state when a new city is chosen
       setGuess(null); // Reset the guess
       setScore(0); // Reset the score
